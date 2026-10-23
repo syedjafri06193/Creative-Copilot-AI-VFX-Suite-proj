@@ -1,0 +1,15 @@
+services:
+  service:
+    build: ./service
+    ports:
+      - "127.0.0.1:8000:8000"
+    environment:
+      SENSEI_TOKEN: ${SENSEI_TOKEN:-}
+
+  mock-host:
+    build: ./adapters/mock-host
+    environment:
+      SENSEI_WS_URL: ws://service:8000/ws/host
+      SENSEI_TOKEN: ${SENSEI_TOKEN:-}
+    depends_on:
+      - service

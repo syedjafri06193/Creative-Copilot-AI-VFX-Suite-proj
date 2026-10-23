@@ -1,11 +1,11 @@
 """
-DaVinci Resolve scripting stub.
+DaVinci Resolve adapter: placeholder, not implemented yet.
 
 Resolve exposes scripting via Python/Lua.
-You would:
+An adapter would:
 - Connect to Resolve scripting API
 - Read current timeline playhead, clip metadata
-- Push context frames to SENSEI service
+- Connect to the SENSEI service's /ws/host, send `hello`, then context frames (see docs/PROTOCOL.md)
 - Apply actions: LUT, OFX, transitions, keyframe adjustments
 """
 

@@ -1,24 +1,27 @@
 {
   "name": "@sensei/copilot-desktop",
   "version": "0.1.0",
+  "description": "SENSEI desktop copilot UI",
   "private": true,
-  "main": "electron/main.ts",
+  "main": "electron/main.js",
   "type": "module",
   "scripts": {
-    "dev": "concurrently \"vite\" \"electronmon\"",
+    "dev": "concurrently -k \"vite --host 127.0.0.1 --port 5180 --strictPort\" \"electron . --dev\"",
     "build": "vite build",
-    "electronmon": "tsx watch electron/main.ts"
-  },
-  "dependencies": {
-    "react": "^18.3.1",
-    "react-dom": "^18.3.1",
-    "ws": "^8.17.1"
+    "start": "vite build && electron .",
+    "dist": "vite build && electron-packager . SENSEI --out=release --overwrite --asar --ignore=\"^/(src|release|node_modules)($|/)\" --ignore=\"^/(index\\.html|tsconfig[^/]*\\.json)$\"",
+    "typecheck": "tsc -p . && tsc -p tsconfig.electron.json"
   },
   "devDependencies": {
-    "concurrently": "^9.0.1",
-    "electron": "^31.2.0",
-    "tsx": "^4.16.2",
-    "typescript": "^5.5.4",
-    "vite": "^5.4.3"
+    "@electron/packager": "^20.3.0",
+    "@types/node": "^24.19.1",
+    "@types/react": "^18.3.31",
+    "@types/react-dom": "^18.3.7",
+    "concurrently": "^10.0.6",
+    "electron": "^44.7.0",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "typescript": "^5.9.3",
+    "vite": "^8.3.3"
   }
 }

@@ -1,16 +1,65 @@
 name: CI
 on: [push, pull_request]
 
+permissions:
+  contents: read
+
 jobs:
   service-tests:
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5.6.0
         with:
           python-version: "3.11"
       - run: |
           cd service
-          pip install -U pip
-          pip install -e .
-          python -m sensei_service.engine 2>/dev/null || true
+          pip install --require-hashes -r requirements-test.lock
+          pytest
+
+  desktop:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: "24"
+      - run: |
+          cd apps/copilot-desktop
+          npm ci
+          npm run typecheck
+          npm run build
+
+  mock-host:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: "24"
+      - run: |
+          cd adapters/mock-host
+          npm ci
+          npm run typecheck
+
+  compose-smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - name: Start the service and the mock host
+        run: docker compose up --build --detach --wait
+      - name: Mock host receives suggestions
+        run: |
+          for i in $(seq 1 20); do
+            docker compose logs mock-host | grep -q '"type":"suggestions"' && exit 0
+            sleep 1
+          done
+          docker compose logs
+          exit 1
+      - name: Stop
+        if: always()
+        run: docker compose down

@@ -1,0 +1,15 @@
+# Python
+venv/
+.venv/
+__pycache__/
+*.egg-info/
+.pytest_cache/
+service/build/
+
+# Node
+node_modules/
+dist/
+release/
+
+# Local environment
+.env

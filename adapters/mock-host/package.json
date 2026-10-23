@@ -3,13 +3,19 @@
   "version": "0.1.0",
   "type": "module",
   "scripts": {
-    "start": "node src/index.ts"
+    "start": "tsx src/index.ts",
+    "typecheck": "tsc -p ."
   },
   "dependencies": {
-    "ws": "^8.17.1"
+    "ws": "^8.22.0"
   },
   "devDependencies": {
-    "tsx": "^4.16.2",
-    "typescript": "^5.5.4"
+    "@types/node": "^24.19.1",
+    "@types/ws": "^8.18.2",
+    "tsx": "^4.23.15",
+    "typescript": "^5.9.3"
+  },
+  "allowScripts": {
+    "esbuild@0.28.2": true
   }
 }

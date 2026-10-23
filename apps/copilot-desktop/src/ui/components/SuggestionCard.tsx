@@ -1,14 +1,14 @@
-import React, { useState } from "react";
+import React from "react";
+import type { Suggestion, Verdict } from "../types";
 
-export default function SuggestionCard({ s }: { s: any }) {
-  const [status, setStatus] = useState<"idle" | "accepted" | "rejected">("idle");
+type Props = {
+  s: Suggestion;
+  status: "idle" | Verdict;
+  disabled: boolean;
+  onFeedback: (verdict: Verdict) => void;
+};
 
-  const sendFeedback = (verdict: "accepted" | "rejected") => {
-    setStatus(verdict);
-    // In production: feedback would go to service via a shared bridge socket.
-    fetch("http://localhost:8000/health").catch(() => {});
-  };
-
+export default function SuggestionCard({ s, status, disabled, onFeedback }: Props) {
   return (
     <div style={{
       border: "1px solid rgba(0,0,0,0.12)",
@@ -27,10 +27,10 @@ export default function SuggestionCard({ s }: { s: any }) {
       </div>
 
       <div style={{ display: "flex", gap: 8, marginTop: 12 }}>
-        <button disabled={status !== "idle"} onClick={() => sendFeedback("accepted")}>
+        <button disabled={disabled || status !== "idle"} onClick={() => onFeedback("accepted")}>
           Apply
         </button>
-        <button disabled={status !== "idle"} onClick={() => sendFeedback("rejected")}>
+        <button disabled={disabled || status !== "idle"} onClick={() => onFeedback("rejected")}>
           Dismiss
         </button>
         {status !== "idle" && <span style={{ opacity: 0.7 }}>✓ {status}</span>}

@@ -1,6 +1,7 @@
-FROM node:18-alpine
+FROM node:24-alpine
 WORKDIR /app
-COPY package.json /app/
-RUN npm i
+COPY package.json package-lock.json /app/
+RUN npm ci
 COPY src /app/src
-CMD ["npx", "tsx", "src/index.ts"]
+USER node
+CMD ["node", "--import", "tsx", "src/index.ts"]

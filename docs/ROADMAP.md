@@ -1,14 +1,16 @@
 # Roadmap
 
 ## v0.1 (this repo)
-- Live suggestions via WebSocket
+- Live suggestions via WebSocket, scoped per project
 - Mock host adapter
-- Electron UI
-- Suggestion engine with heuristics
+- Electron UI (dev server, built, packaged)
+- Suggestion engine with heuristics, ranked by confidence
+- Feedback messages (validated and logged)
 
 ## v0.2
 - Resolve adapter prototype (Python)
 - Adobe bridge proof-of-concept (CEP/UXP)
+- Apply accepted actions in the host (action ids, idempotent apply, host-side guards)
 - Audio beat detection utility module
 - Persistent projects + feedback logging
 
@@ -19,5 +21,5 @@
 
 ## v1.0
 - Commercial-grade host integrations
-- Robust permissions, sandboxing
+- Robust permissions (per-user identity instead of a shared token)
 - Template marketplace for looks / motion packs

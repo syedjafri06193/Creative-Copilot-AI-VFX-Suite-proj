@@ -1,12 +1,18 @@
-from typing import Literal, Optional, Any
-from pydantic import BaseModel, Field
+from typing import Annotated, Literal, Optional, Any
+from pydantic import BaseModel, Field, StringConstraints
+
+# Client-supplied strings that end up in logs and the UI are bounded, and can't carry control
+# characters (e.g. newlines that would forge log lines).
+ProjectId = Annotated[str, StringConstraints(pattern=r"^[A-Za-z0-9._-]{1,64}$")]
+SuggestionId = Annotated[str, StringConstraints(pattern=r"^sug_[0-9a-f]{8}$")]
+Label = Annotated[str, StringConstraints(pattern=r"^[^\x00-\x1f\x7f]{1,64}$")]
 
 class HostInfo(BaseModel):
-    name: str
-    version: str
+    name: Label
+    version: Label
 
 class ProjectInfo(BaseModel):
-    id: str
+    id: ProjectId
     fps: float
 
 class HelloMsg(BaseModel):
@@ -45,11 +51,10 @@ class ContextFrameMsg(BaseModel):
 
 class FeedbackMsg(BaseModel):
     type: Literal["feedback"]
-    suggestion_id: str
+    suggestion_id: SuggestionId
     verdict: Literal["accepted", "rejected", "modified"]
-    notes: Optional[str] = None
-
-InboundMsg = HelloMsg | ContextFrameMsg | FeedbackMsg
+    project_id: Optional[ProjectId] = None
+    notes: Optional[Annotated[str, StringConstraints(max_length=1000)]] = None
 
 class Action(BaseModel):
     op: str
@@ -66,4 +71,10 @@ class SuggestionItem(BaseModel):
 class SuggestionsMsg(BaseModel):
     type: Literal["suggestions"] = "suggestions"
     ts: int
+    project_id: str = ""
+    host: str = ""
     items: list[SuggestionItem]
+
+class ProjectClosedMsg(BaseModel):
+    type: Literal["project_closed"] = "project_closed"
+    project_id: str

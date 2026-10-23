@@ -5,17 +5,19 @@ def suggest_rhythm_keyframes(ctx):
     if not audio or not audio.beats:
         return []
 
-    # Find nearest beat to playhead and suggest snapping an upcoming keyframe
-    playhead = ctx.playhead
-    nearest = min(audio.beats, key=lambda b: abs(b - playhead))
+    # Snap the next keyframe to the first beat at or after the playhead
+    upcoming = [b for b in audio.beats if b >= ctx.playhead]
+    if not upcoming:
+        return []
+    beat = round(min(upcoming), 3)
     return [SuggestionItem(
         id="",
         kind="keyframe",
-        title=f"Snap next keyframe to nearest beat @ {nearest:.2f}s",
+        title=f"Snap next keyframe to the next beat @ {beat:.2f}s",
         confidence=0.70,
         rationale="Rhythmic alignment increases perceived polish (especially for motion text / speed ramps).",
         action=Action(op="snap_keyframe_to_time", params={
-            "time": nearest,
+            "time": beat,
             "target": "next_keyframe"
         })
     )]

@@ -1,12 +1,32 @@
+[build-system]
+requires = ["setuptools==84.0.0"]
+build-backend = "setuptools.build_meta"
+
 [project]
 name = "sensei-service"
 version = "0.1.0"
 requires-python = ">=3.11"
 dependencies = [
-  "fastapi==0.115.0",
-  "uvicorn[standard]==0.30.6",
-  "pydantic==2.8.2"
+  "fastapi==0.142.4",
+  "uvicorn[standard]==0.54.0",
+  "pydantic==2.13.5"
 ]
 
-[tool.uvicorn]
-factory = false
+[project.optional-dependencies]
+test = [
+  "pytest==9.1.1",
+  "pytest-timeout==2.4.0",
+  # starlette 1.x's TestClient requires httpx2: starlette/testclient.py imports it (and asks for
+  # `pip install httpx2`), and starlette's `full` extra lists httpx2>=2.0.0. Published from
+  # github.com/pydantic/httpx2 without a PyPI attestation, so requirements-test.lock pins it by hash.
+  "httpx2==2.13.1"
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]
+# a missing WebSocket message would otherwise block receive() forever
+timeout = 10
+
+[tool.setuptools.packages.find]
+include = ["sensei_service*"]
