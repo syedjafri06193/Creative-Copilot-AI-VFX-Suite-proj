@@ -11,6 +11,8 @@ ENV PYTHONPATH=/app
 RUN useradd --create-home sensei
 USER sensei
 WORKDIR /home/sensei
+# learned feedback lives here; created as this user so a volume mounted on it starts out writable
+RUN mkdir -p /home/sensei/.sensei
 
 EXPOSE 8000
 HEALTHCHECK --interval=5s --timeout=3s --start-period=5s --retries=5 \

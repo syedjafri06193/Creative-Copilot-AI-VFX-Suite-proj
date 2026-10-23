@@ -5,6 +5,8 @@ services:
       - "127.0.0.1:8000:8000"
     environment:
       SENSEI_TOKEN: ${SENSEI_TOKEN:-}
+    volumes:
+      - sensei-data:/home/sensei/.sensei  # stored feedback, so learning survives rebuilds
 
   mock-host:
     build: ./adapters/mock-host
@@ -13,3 +15,6 @@ services:
       SENSEI_TOKEN: ${SENSEI_TOKEN:-}
     depends_on:
       - service
+
+volumes:
+  sensei-data:

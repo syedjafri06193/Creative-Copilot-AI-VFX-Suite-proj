@@ -1,4 +1,5 @@
-import { app, BrowserWindow, ipcMain, net, protocol, session } from "electron";
+import { app, BrowserWindow, ipcMain, nativeTheme, net, protocol, session } from "electron";
+import { spawn } from "child_process";
 import path from "path";
 import { fileURLToPath, pathToFileURL } from "url";
 
@@ -58,10 +59,19 @@ function isUiUrl(url) {
   return target.protocol === ui.protocol && target.host === ui.host;
 }
 
+// the page's own background (src/ui/styles.css) for the current theme, so the window never shows another colour
+// while the page loads or reloads
+function windowBackground() {
+  return nativeTheme.shouldUseDarkColors ? "#1e1f23" : "#eceef1";
+}
+
 function createWindow() {
   const win = new BrowserWindow({
     width: 980,
     height: 720,
+    minWidth: 380, // the cards stack in one column down to this width
+    minHeight: 360,
+    backgroundColor: windowBackground(),
     webPreferences: {
       preload: path.join(__dirname, "preload.cjs"),
       contextIsolation: true,
@@ -75,6 +85,11 @@ function createWindow() {
   win.webContents.on("will-navigate", (event, url) => {
     if (!isUiUrl(url)) event.preventDefault();
   });
+
+  // the page follows the system theme as it changes, so the window behind it does too
+  const followTheme = () => win.setBackgroundColor(windowBackground());
+  nativeTheme.on("updated", followTheme);
+  win.on("closed", () => nativeTheme.off("updated", followTheme));
 
   load(win);
 }
@@ -95,8 +110,36 @@ ipcMain.handle("sensei:config", (event) => {
   return { token: process.env.SENSEI_TOKEN || null, serviceUrl: SERVICE_URL };
 });
 
-app.whenReady().then(() => {
-  serveDist();
-  applyCspToDevServer();
-  createWindow();
-});
+// The Windows installer (Squirrel) runs the app with --squirrel-* while installing, updating and
+// uninstalling it: add or remove its shortcuts, then quit without opening a window. The launch right
+// after installing (--squirrel-firstrun) starts normally.
+const SQUIRREL_SHORTCUTS = new Map([
+  ["--squirrel-install", "--createShortcut"],
+  ["--squirrel-updated", "--createShortcut"],
+  ["--squirrel-uninstall", "--removeShortcut"],
+  ["--squirrel-obsolete", null]
+]);
+
+/** @returns {boolean} whether this launch is a Squirrel event (and the app is quitting) */
+function handleSquirrelEvent() {
+  const event = process.platform === "win32" ? process.argv[1] : undefined;
+  if (event === undefined || !SQUIRREL_SHORTCUTS.has(event)) return false;
+  const command = SQUIRREL_SHORTCUTS.get(event);
+  if (!command) {
+    app.quit();
+    return true;
+  }
+  const update = path.resolve(path.dirname(process.execPath), "..", "Update.exe");
+  spawn(update, [command, path.basename(process.execPath)], { detached: true })
+    .once("close", () => app.quit())
+    .once("error", () => app.quit());
+  return true;
+}
+
+if (!handleSquirrelEvent()) {
+  app.whenReady().then(() => {
+    serveDist();
+    applyCspToDevServer();
+    createWindow();
+  });
+}

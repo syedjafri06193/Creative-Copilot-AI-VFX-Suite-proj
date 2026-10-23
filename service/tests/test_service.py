@@ -4,8 +4,11 @@ import pytest
 from fastapi.testclient import TestClient
 from starlette.websockets import WebSocketDisconnect
 
-from sensei_service.config import Settings, settings
+from sensei_service.clients import Client, digest, shared_client
+from sensei_service.config import settings
 from sensei_service.engine.suggest import build_suggestions
+from sensei_service import main
+from sensei_service.feedback import FeedbackStore
 from sensei_service.main import UI_QUEUE_SIZE, Hub, app, hub, serve
 from sensei_service.protocol import ContextFrameMsg
 
@@ -34,11 +37,17 @@ def start_host(host, project_id="p", name="test"):
 
 
 @pytest.fixture
-def client():
+def client(monkeypatch):
+    monkeypatch.setattr(main, "store", FeedbackStore(":memory:"))  # fresh learning state per test
     hub.clients.clear()
     hub.latest.clear()
     hub.hosts.clear()
-    return TestClient(app)
+    hub.owners.clear()
+    hub.actions.clear()
+    # As a context manager, every WebSocket session shares one event loop, as under uvicorn;
+    # otherwise each session gets its own loop and cross-session wake-ups can be lost.
+    with TestClient(app) as test_client:
+        yield test_client
 
 
 def test_health(client):
@@ -136,8 +145,9 @@ def test_bad_input_gets_error_and_socket_stays_open(client, payload, expected):
 
 def test_feedback_is_validated(client):
     with client.websocket_connect("/ws/ui") as ui:
-        ui.send_json({"type": "feedback", "suggestion_id": "sug_1234abcd", "verdict": "accepted"})
-        assert ui.receive_json() == {"type": "ack_feedback", "ok": True}
+        ui.send_json({"type": "feedback", "suggestion_id": "sug_1234abcd", "verdict": "accepted", "project_id": "p"})
+        assert ui.receive_json() == {"type": "ack_feedback", "ok": False, "project_id": "p",
+                                     "suggestion_id": "sug_1234abcd", "detail": "this suggestion is no longer current"}
 
         ui.send_json({"type": "feedback", "verdict": "loved it"})
         reply = ui.receive_json()
@@ -168,8 +178,47 @@ def test_allowed_origin_is_accepted(client, path):
 
 @pytest.fixture
 def token(monkeypatch):
-    monkeypatch.setattr(settings, "token", "s3cret")
+    # the single shared-token mode (SENSEI_TOKEN)
+    monkeypatch.setattr(settings, "clients", [shared_client("s3cret")])
     return "s3cret"
+
+
+@pytest.fixture
+def per_client(monkeypatch):
+    # per-client mode (SENSEI_CLIENTS_FILE): a host-only and a UI-only client
+    tokens = {"resolve": "host-token", "desktop": "ui-token"}
+    monkeypatch.setattr(settings, "clients", [
+        Client("resolve", ("host",), digest(tokens["resolve"])),
+        Client("desktop", ("ui",), digest(tokens["desktop"])),
+    ])
+    return tokens
+
+
+@pytest.mark.parametrize("path, name, allowed", [
+    ("/ws/host", "resolve", True),
+    ("/ws/ui", "resolve", False),
+    ("/ws/ui", "desktop", True),
+    ("/ws/host", "desktop", False),
+])
+def test_clients_may_only_use_their_roles(client, per_client, path, name, allowed):
+    subprotocols = [f"sensei.token.{per_client[name]}"]
+    if allowed:
+        with client.websocket_connect(path, subprotocols=subprotocols) as ws:
+            ws.send_json(HELLO)
+            assert ws.receive_json() == ACK
+    else:
+        with pytest.raises(WebSocketDisconnect) as exc:
+            with client.websocket_connect(path, subprotocols=subprotocols):
+                pass
+        assert exc.value.code == 1008
+
+
+@pytest.mark.parametrize("path", ["/ws/host", "/ws/ui"])
+def test_unknown_client_token_is_rejected(client, per_client, path):
+    with pytest.raises(WebSocketDisconnect) as exc:
+        with client.websocket_connect(path, subprotocols=["sensei.token.not-a-client"]):
+            pass
+    assert exc.value.code == 1008
 
 
 @pytest.mark.parametrize("path", ["/ws/host", "/ws/ui"])
@@ -191,11 +240,6 @@ def test_token_subprotocol_is_echoed_when_auth_is_off(client):
     # browsers drop the connection if an offered subprotocol is not echoed
     with client.websocket_connect("/ws/ui", subprotocols=["sensei.token.anything"]) as ui:
         assert ui.accepted_subprotocol == "sensei.token.anything"
-
-
-def test_token_must_be_subprotocol_safe():
-    with pytest.raises(ValueError):
-        Settings(allowed_origins=[], token="has space")
 
 
 class FakeWs:
@@ -285,10 +329,11 @@ def test_a_failed_send_ends_the_sender_cleanly():
 def test_snapshot_is_queued_before_later_updates():
     # a project closing right after a UI connects must not be resurrected by the replay
     hub = Hub()
-    hub.open("p")
+    host = FakeWs()
+    hub.open("p", host, "")
     hub.publish("p", "latest")
     ui = hub.subscribe(FakeWs())
-    hub.close("p")
+    hub.close("p", host)
     assert queued(ui) == ["latest", '{"type":"project_closed","project_id":"p"}']
 
 
@@ -301,27 +346,31 @@ def test_host_switching_projects_keeps_counts_right(client):
         host.send_json(FRAME)
         host.receive_json()
         assert ui.receive_json()["type"] == "suggestions"  # no project_closed for "b" in between
-        assert hub.hosts == {"b": 1}
+        assert {project: len(hosts) for project, hosts in hub.hosts.items()} == {"b": 1}
     assert hub.hosts == {}
 
 
 def test_closing_an_unknown_project_is_harmless():
     hub = Hub()
-    hub.close("never-opened")
+    hub.close("never-opened", FakeWs())
     assert hub.hosts == {}
 
 
-@pytest.mark.parametrize("message", [
-    {"type": "feedback", "suggestion_id": "sug_1234abcd\nINFO: forged log line", "verdict": "accepted"},
-    {"type": "feedback", "suggestion_id": "sug_1234abcd", "verdict": "accepted", "project_id": "p\n1"},
-    {"type": "feedback", "suggestion_id": "sug_1234abcd", "verdict": "accepted", "notes": "x" * 1001},
-    {**HELLO, "project": {"id": "a" * 65, "fps": 24}},
-    {**HELLO, "host": {"name": "evil\r\nhost", "version": "0"}},
+FEEDBACK = {"type": "feedback", "suggestion_id": "sug_1234abcd", "verdict": "accepted", "project_id": "p"}
+
+
+@pytest.mark.parametrize("path, message", [
+    ("/ws/ui", {**FEEDBACK, "suggestion_id": "sug_1234abcd\nINFO: forged log line"}),
+    ("/ws/ui", {**FEEDBACK, "project_id": "p\n1"}),
+    ("/ws/ui", {**FEEDBACK, "notes": "x" * 1001}),
+    ("/ws/host", {**HELLO, "project": {"id": "a" * 65, "fps": 24}}),
+    ("/ws/host", {**HELLO, "host": {"name": "evil\r\nhost", "version": "0"}}),
 ])
-def test_client_strings_are_bounded(client, message):
-    with client.websocket_connect("/ws/host") as host:
-        host.send_json(message)
-        assert host.receive_json()["type"] == "error"
+def test_client_strings_are_bounded(client, path, message):
+    with client.websocket_connect(path) as ws:
+        ws.send_json(message)
+        reply = ws.receive_json()
+        assert reply["type"] == "error" and reply["message"].startswith("invalid ")
 
 
 def test_serve_stops_once_the_client_is_dropped():

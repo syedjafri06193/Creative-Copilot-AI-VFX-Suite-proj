@@ -11,6 +11,7 @@ def suggest_vfx(ctx):
             confidence=0.74,
             rationale="Neon signage benefits from controlled bloom to sell intensity without clipping.",
             action=Action(op="apply_vfx_preset", params={
+                "shot": ctx.scene.shot_id,
                 "preset": "neon_bloom_02",
                 "threshold": 0.78,
                 "intensity": 0.35,

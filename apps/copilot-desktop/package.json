@@ -9,7 +9,7 @@
     "dev": "concurrently -k \"vite --host 127.0.0.1 --port 5180 --strictPort\" \"electron . --dev\"",
     "build": "vite build",
     "start": "vite build && electron .",
-    "dist": "vite build && electron-packager . SENSEI --out=release --overwrite --asar --ignore=\"^/(src|release|node_modules)($|/)\" --ignore=\"^/(index\\.html|tsconfig[^/]*\\.json)$\"",
+    "dist": "vite build && node scripts/package.mjs",
     "typecheck": "tsc -p . && tsc -p tsconfig.electron.json"
   },
   "devDependencies": {
@@ -19,6 +19,7 @@
     "@types/react-dom": "^18.3.7",
     "concurrently": "^10.0.6",
     "electron": "^44.7.0",
+    "electron-winstaller": "^5.4.4",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "typescript": "^5.9.3",

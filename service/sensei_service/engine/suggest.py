@@ -7,12 +7,15 @@ from .vfx import suggest_vfx
 from .transitions import suggest_transitions
 from ..protocol import SuggestionsMsg
 
-def build_suggestions(context) -> SuggestionsMsg:
+def build_suggestions(context, adjust=None) -> SuggestionsMsg:
     items = []
     items += suggest_color(context)
     items += suggest_transitions(context)
     items += suggest_rhythm_keyframes(context)
     items += suggest_vfx(context)
+    # learned preferences (feedback.py) replace rule confidences before ranking
+    if adjust is not None:
+        items = [adjust(it) for it in items]
     # ranked: most confident first (stable, so ties keep rule order)
     items.sort(key=lambda it: it.confidence, reverse=True)
 

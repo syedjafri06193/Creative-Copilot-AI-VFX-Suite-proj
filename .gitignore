@@ -13,3 +13,4 @@ release/
 
 # Local environment
 .env
+service/clients.json

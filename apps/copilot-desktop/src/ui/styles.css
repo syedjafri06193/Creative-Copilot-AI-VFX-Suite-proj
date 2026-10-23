@@ -1,0 +1,383 @@
+/* SENSEI sits next to an editing app, so it follows one: a graphite panel by default (light when the system
+   is light), dense type, and each kind of suggestion marked in its own clip colour. */
+
+:root {
+  color-scheme: dark light;
+  --bg: #1e1f23;
+  --surface: #26282d;
+  --line: #34363c;
+  --text: #e6e4df;
+  --muted: #9a9da5;
+  --grade: #e0a458;
+  --transition: #a88beb;
+  --keyframe: #5fb8e8;
+  --effect: #e87fb0;
+  --ok: #6cc48a;
+  --warn: #e3b341;
+  --primary-bg: #e6e4df;
+  --primary-text: #1e1f23;
+  --focus: #5fb8e8;
+}
+
+@media (prefers-color-scheme: light) {
+  :root {
+    --bg: #eceef1;
+    --surface: #ffffff;
+    --line: #d5d8de;
+    --text: #1d1f24;
+    --muted: #5d626c;
+    --grade: #a8661a;
+    --transition: #6e4fc9;
+    --keyframe: #1a6fa3;
+    --effect: #b83d7a;
+    --ok: #23753c;
+    --warn: #9a6a00;
+    --primary-bg: #1d1f24;
+    --primary-text: #ffffff;
+    --focus: #1a6fa3;
+  }
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font: 13px/1.45 "Segoe UI Variable Text", "Segoe UI", -apple-system, BlinkMacSystemFont, "Inter", "Cantarell", sans-serif;
+  font-variant-numeric: tabular-nums;
+}
+
+.app {
+  max-width: 1120px;
+  margin: 0 auto;
+  padding: 0 20px 28px;
+}
+
+/* --- Top bar: what this is, and whether it can hear the service ---------------------------------------- */
+
+.topbar {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 16px 0 14px;
+  border-bottom: 1px solid var(--line);
+}
+
+.wordmark {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+}
+
+.connection {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.connection::before {
+  content: "";
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--warn);
+}
+
+.connection--ok::before {
+  background: var(--ok);
+}
+
+/* --- Nothing to show yet ---------------------------------------------------------------------------------- */
+
+.empty {
+  max-width: 560px;
+  margin: 48px auto 0;
+  color: var(--muted);
+}
+
+.empty h2 {
+  margin: 0 0 6px;
+  color: var(--text);
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.empty p {
+  margin: 0 0 8px;
+}
+
+.empty code {
+  font-size: 12px;
+  color: var(--text);
+}
+
+/* --- One section per open project ------------------------------------------------------------------------- */
+
+.project {
+  margin-top: 22px;
+}
+
+.project__header {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  margin: 0 0 10px;
+}
+
+.project__name {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+.project__host,
+.project__count {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.project__count {
+  margin-left: auto;
+  white-space: nowrap;
+}
+
+.cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 340px), 1fr));
+  align-items: start;
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+/* --- A suggestion: a clip-coloured edge for its kind ------------------------------------------------------- */
+
+.card {
+  --kind: var(--muted);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 12px 14px 12px 13px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-left: 4px solid var(--kind);
+  border-radius: 4px;
+}
+
+.card[data-kind="color_grade"] { --kind: var(--grade); }
+.card[data-kind="transition"] { --kind: var(--transition); }
+.card[data-kind="keyframe"] { --kind: var(--keyframe); }
+.card[data-kind="vfx"] { --kind: var(--effect); }
+
+/* a dismissed suggestion greys out like a disabled clip; its text keeps full contrast */
+.card.card--dismissed {
+  --kind: var(--muted);
+}
+
+.card--dismissed .card__title {
+  color: var(--muted);
+}
+
+.card__top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.card__kind {
+  color: var(--kind);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.card__title {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1.3;
+}
+
+/* focus lands here after a decision; only show it when the decision was made from the keyboard */
+.card__title:focus {
+  outline: none;
+}
+
+.card__title:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
+}
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.card__why {
+  margin: 0;
+  color: var(--muted);
+}
+
+.card__learned {
+  margin: 0;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.card__what {
+  margin: 0;
+  font-size: 12px;
+}
+
+/* confidence: a short level meter in the kind's colour */
+.meter {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.meter__track {
+  display: block;
+  width: 56px;
+  height: 4px;
+  border-radius: 2px;
+  background: var(--line);
+  overflow: hidden;
+}
+
+.meter__fill {
+  display: block;
+  height: 100%;
+  background: var(--kind);
+}
+
+.card__actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.button {
+  min-height: 28px;
+  padding: 4px 12px;
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  background: transparent;
+  color: var(--text);
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.button:hover:not(:disabled) {
+  border-color: var(--muted);
+}
+
+.button--primary {
+  border-color: var(--primary-bg);
+  background: var(--primary-bg);
+  color: var(--primary-text);
+}
+
+.button--primary:hover:not(:disabled) {
+  border-color: var(--primary-bg);
+  filter: brightness(1.08);
+}
+
+.button:disabled {
+  cursor: default;
+  opacity: 0.45;
+}
+
+.button:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
+}
+
+/* where the decision stands */
+.state {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: 600;
+}
+
+.state--done {
+  color: var(--ok);
+}
+
+.state--marked {
+  color: var(--kind);
+}
+
+.state--waiting::before {
+  content: "";
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--kind);
+  animation: waiting 1s ease-in-out infinite alternate;
+}
+
+@keyframes waiting {
+  from { opacity: 1; }
+  to { opacity: 0.25; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .state--waiting::before {
+    animation: none;
+  }
+}
+
+/* each host's answer, then why a decision didn't go through */
+.answers {
+  margin: 2px 0 0;
+  padding: 0;
+  list-style: none;
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.answer--ok {
+  color: var(--ok);
+}
+
+.answer--refused,
+.note {
+  color: var(--warn);
+}
+
+.note {
+  margin: 0;
+  font-size: 12px;
+}
+
+@media (max-width: 480px) {
+  .app {
+    padding: 0 12px 20px;
+  }
+
+  .project__header {
+    flex-wrap: wrap;
+  }
+}

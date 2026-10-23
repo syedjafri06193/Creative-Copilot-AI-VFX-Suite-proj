@@ -1,0 +1,14 @@
+# Per-client tokens, layered on docker-compose.yml:
+#   docker compose -f docker-compose.yml -f docker-compose.clients.yml up --build
+# Create service/clients.json and the tokens first (see README, "Require tokens").
+services:
+  service:
+    environment:
+      SENSEI_TOKEN: ""
+      SENSEI_CLIENTS_FILE: /run/sensei/clients.json
+    volumes:
+      - ./service/clients.json:/run/sensei/clients.json:ro
+
+  mock-host:
+    environment:
+      SENSEI_TOKEN: ${SENSEI_MOCK_HOST_TOKEN:?set SENSEI_MOCK_HOST_TOKEN to the mock host's token}

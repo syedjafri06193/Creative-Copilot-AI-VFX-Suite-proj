@@ -18,6 +18,7 @@ def suggest_color(ctx):
             rationale=f"{' and '.join(cues).capitalize()} {'benefit' if len(cues) > 1 else 'benefits'} "
                       "from cooler shadows and controlled warmth.",
             action=Action(op="apply_color_grade", params={
+                "shot": ctx.scene.shot_id,
                 "lut": "teal_orange_07",
                 "contrast": 1.10,
                 "sat": 0.92,
@@ -33,6 +34,7 @@ def suggest_color(ctx):
             confidence=0.62,
             rationale="A safe filmic baseline when emotion/lighting is neutral.",
             action=Action(op="apply_color_grade", params={
+                "shot": ctx.scene.shot_id,
                 "lut": "filmic_neutral_03",
                 "contrast": 1.05,
                 "sat": 1.00
