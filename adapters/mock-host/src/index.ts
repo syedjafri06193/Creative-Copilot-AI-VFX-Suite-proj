@@ -2,7 +2,7 @@ import WebSocket from "ws";
 import { makeFrame } from "./timeline.js";
 
 const url = process.env.SENSEI_WS_URL ?? "ws://127.0.0.1:8000/ws/host";
-// optional shared secret, presented as a WebSocket subprotocol (see docs/PROTOCOL.md)
+// optional shared secret, presented as a WebSocket subprotocol (see 1—Documentation/PROTOCOL.md)
 const protocols = process.env.SENSEI_TOKEN ? [`sensei.token.${process.env.SENSEI_TOKEN}`] : [];
 
 const PROJECT = { id: "p1", fps: 24 };

@@ -1,5 +1,7 @@
 # SENSEI — AI Copilot for Editing + Motion Graphics
 
+[![CI](https://github.com/syedjafri06193/creative-copilot-mvp-/actions/workflows/ci.yml/badge.svg)](https://github.com/syedjafri06193/creative-copilot-mvp-/actions/workflows/ci.yml)
+
 SENSEI is a creative copilot for editing and motion-graphics software. A host adapter streams the timeline
 context (playhead, cuts, beats, scene metadata) to a local service, which sends back suggestions that a desktop
 UI shows in real time:
@@ -13,7 +15,7 @@ learned from your Apply/Dismiss decisions; nothing analyses the media itself, an
 are supplied by the host rather than detected. Applied suggestions are sent to the host, which applies them. Hosts:
 a mock that streams a synthetic timeline, and a DaVinci Resolve adapter (tested against a stand-in for Resolve's
 scripting API, not yet inside Resolve itself); the Adobe adapter is not implemented. See
-[`docs/ROADMAP.md`](docs/ROADMAP.md).
+[`1—Documentation/ROADMAP.md`](1—Documentation/ROADMAP.md).
 
 ## Monorepo Layout
 - `service/` — FastAPI WebSocket suggestion service (Python)
@@ -21,7 +23,7 @@ scripting API, not yet inside Resolve itself); the Adobe adapter is not implemen
 - `adapters/mock-host/` — a fake editing host that streams a synthetic timeline
 - `adapters/resolve/` — the DaVinci Resolve adapter ([setup](adapters/resolve/README.md))
 - `adapters/adobe-bridge/` — placeholder for an Adobe integration
-- `docs/` — [architecture](docs/ARCHITECTURE.md), [protocol](docs/PROTOCOL.md), [security](docs/SECURITY.md), [roadmap](docs/ROADMAP.md)
+- `1—Documentation/` — [index](1—Documentation/README.md), [architecture](1—Documentation/ARCHITECTURE.md), [protocol](1—Documentation/PROTOCOL.md), [security](1—Documentation/SECURITY.md), [roadmap](1—Documentation/ROADMAP.md)
 
 ## Quickstart (Demo)
 Requirements: Docker, Node 22.12+ (Python 3.11+ only to run the service without Docker)
@@ -99,7 +101,7 @@ cd apps/copilot-desktop && SENSEI_TOKEN=<desktop token> npm run dev
 `remove <name>` revokes a client (restart the service to apply). Stop the stack with a plain `docker compose down`. Setting both `SENSEI_CLIENTS_FILE` and
 `SENSEI_TOKEN` for the service is refused, so auth can't be weakened by accident.
 Browser pages may only connect from the origins in `SENSEI_ALLOWED_ORIGINS` (default: the desktop UI) — see
-[`docs/PROTOCOL.md`](docs/PROTOCOL.md).
+[`1—Documentation/PROTOCOL.md`](1—Documentation/PROTOCOL.md).
 
 ## Development
 ```bash
