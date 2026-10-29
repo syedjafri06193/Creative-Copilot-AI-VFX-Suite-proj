@@ -48,7 +48,7 @@ export default function App() {
   useEffect(() => {
     let stopped = false;
     let retry: ReturnType<typeof setTimeout> | undefined;
-    // optional shared secret, presented as a WebSocket subprotocol (see docs/PROTOCOL.md)
+    // optional shared secret, presented as a WebSocket subprotocol (see 1—Documentation/PROTOCOL.md)
     let protocols: string[] = [];
     let url = `${DEFAULT_SERVICE_URL}/ws/ui`;
 
